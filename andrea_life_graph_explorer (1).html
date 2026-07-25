@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 900px;
+                 background-color: #080b12;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#ffffff", "font": {"color": "white"}, "id": "ANDREA\nVERSION 30.0\n16.08.1996 \u2192 \u221e", "label": "ANDREA\u003cbr\u003eVERSION 30.0\u003cbr\u003e16.08.1996 \u2192 \u221e", "physics": true, "shape": "dot", "size": 50, "title": "\nAndrea\n\nVersion 30.0\n\nA life represented as a network\nof connections, memories,\npeople and ideas.\n", "x": 0, "y": 0}, {"color": "#888888", "font": {"color": "white"}, "id": "KNOWLEDGE\n\u0026 CREATION", "label": "KNOWLEDGE\u003cbr\u003e\u0026 CREATION", "physics": true, "shape": "dot", "size": 30, "title": "Explore this dimension of Andrea\u0027s life.", "x": -250, "y": 200}, {"color": "#4fc3f7", "font": {"color": "white"}, "id": "Data Science", "label": "Data Science", "physics": true, "shape": "dot", "size": 15, "title": "\nThe analytical mindset.\n\nThe language behind\npatterns, models and data.\n", "x": 0, "y": 0}, {"color": "#4fc3f7", "font": {"color": "white"}, "id": "Artificial Intelligence", "label": "Artificial Intelligence", "physics": true, "shape": "dot", "size": 15, "title": "\nThe field where Andrea\nbuilds connections between\ntechnology and knowledge.\n", "x": 0, "y": 0}, {"color": "#4fc3f7", "font": {"color": "white"}, "id": "Politecnico di Milano", "label": "Politecnico di Milano", "physics": true, "shape": "dot", "size": 15, "title": "\nA place of learning,\nexperimentation and growth.\n", "x": 0, "y": 0}, {"color": "#4fc3f7", "font": {"color": "white"}, "id": "Startup Legisratio", "label": "Startup Legisratio", "physics": true, "shape": "dot", "size": 15, "title": "\nArtificial intelligence\napplied to legal knowledge.\n\nA graph connecting rules,\ndocuments and information.\n", "x": 0, "y": 0}, {"color": "#888888", "font": {"color": "white"}, "id": "ROOTS", "label": "ROOTS", "physics": true, "shape": "dot", "size": 30, "title": "Explore this dimension of Andrea\u0027s life.", "x": -300, "y": -150}, {"color": "#ffd54f", "font": {"color": "white"}, "id": "Branzi Val Brembana", "label": "Branzi Val Brembana", "physics": true, "shape": "dot", "size": 15, "title": "\nLa tua grotta.\n", "x": 0, "y": 0}, {"color": "#ffd54f", "font": {"color": "white"}, "id": "Palio dei Paesi", "label": "Palio dei Paesi", "physics": true, "shape": "dot", "size": 15, "title": "\nForza Galitt.\n", "x": 0, "y": 0}, {"color": "#ffd54f", "font": {"color": "white"}, "id": "Palo della Cuccagna", "label": "Palo della Cuccagna", "physics": true, "shape": "dot", "size": 15, "title": "\nIl mio falegname con 300 euro lo faceva meglio.\n", "x": 0, "y": 0}, {"color": "#ffd54f", "font": {"color": "white"}, "id": "Bees \u0026 Honey", "label": "Bees \u0026 Honey", "physics": true, "shape": "dot", "size": 15, "title": "\nNo perch\u00e8 sai.\n", "x": 0, "y": 0}, {"color": "#ffd54f", "font": {"color": "white"}, "id": "Old Skoda Fabia", "label": "Old Skoda Fabia", "physics": true, "shape": "dot", "size": 15, "title": "\nA small car,\na big collection\nof memories.\n", "x": 0, "y": 0}, {"color": "#ffd54f", "font": {"color": "white"}, "id": "Garden Tomatoes", "label": "Garden Tomatoes", "physics": true, "shape": "dot", "size": 15, "title": "\nNo perch\u00e8 SAAAAI.\n", "x": 0, "y": 0}, {"color": "#888888", "font": {"color": "white"}, "id": "CURIOSITY\n\u0026 PLAY", "label": "CURIOSITY\u003cbr\u003e\u0026 PLAY", "physics": true, "shape": "dot", "size": 30, "title": "Explore this dimension of Andrea\u0027s life.", "x": 300, "y": 200}, {"color": "#81c784", "font": {"color": "white"}, "id": "Anna Pepe", "label": "Anna Pepe", "physics": true, "shape": "dot", "size": 15, "title": "\nLa vera Baddie.\n", "x": 0, "y": 0}, {"color": "#81c784", "font": {"color": "white"}, "id": "Pok\u00e9mon", "label": "Pok\u00e9mon", "physics": true, "shape": "dot", "size": 15, "title": "\nTotodile o Chickorita?\n", "x": 0, "y": 0}, {"color": "#81c784", "font": {"color": "white"}, "id": "Golf Balls \u0026 Gas Pumps", "label": "Golf Balls \u0026 Gas Pumps", "physics": true, "shape": "dot", "size": 15, "title": "\nSEGMENTAZIONE PER IMMAGINI.\n", "x": 0, "y": 0}, {"color": "#81c784", "font": {"color": "white"}, "id": "Personalized Stickers", "label": "Personalized Stickers", "physics": true, "shape": "dot", "size": 15, "title": "\nArte.\n", "x": 0, "y": 0}, {"color": "#888888", "font": {"color": "white"}, "id": "PLACES\n\u0026 MEMORIES", "label": "PLACES\u003cbr\u003e\u0026 MEMORIES", "physics": true, "shape": "dot", "size": 30, "title": "Explore this dimension of Andrea\u0027s life.", "x": 350, "y": -150}, {"color": "#ffb74d", "font": {"color": "white"}, "id": "Dallas", "label": "Dallas", "physics": true, "shape": "dot", "size": 15, "title": "\nA piedi in autostrada.\n", "x": 0, "y": 0}, {"color": "#ffb74d", "font": {"color": "white"}, "id": "Hong Kong", "label": "Hong Kong", "physics": true, "shape": "dot", "size": 15, "title": "\nCHE PUZZA.\n", "x": 0, "y": 0}, {"color": "#ffb74d", "font": {"color": "white"}, "id": "Rome", "label": "Rome", "physics": true, "shape": "dot", "size": 15, "title": "\nCOVID e EIEF.\n", "x": 0, "y": 0}, {"color": "#ffb74d", "font": {"color": "white"}, "id": "My Liguria", "label": "My Liguria", "physics": true, "shape": "dot", "size": 15, "title": "\nElisabetta Canalis.\n", "x": 0, "y": 0}, {"color": "#ffb74d", "font": {"color": "white"}, "id": "Lake Iseo", "label": "Lake Iseo", "physics": true, "shape": "dot", "size": 15, "title": "\nA new memory.\n", "x": 0, "y": 0}, {"color": "#ffb74d", "font": {"color": "white"}, "id": "Lake Carona", "label": "Lake Carona", "physics": true, "shape": "dot", "size": 15, "title": "\nNature and memories.\n", "x": 0, "y": 0}, {"color": "#ffb74d", "font": {"color": "white"}, "id": "Torre Branca\nParco Sempione", "label": "Torre Branca\u003cbr\u003eParco Sempione", "physics": true, "shape": "dot", "size": 15, "title": "", "x": 0, "y": 0}, {"color": "#ffb74d", "font": {"color": "white"}, "id": "Museum of Science\nand Technology Milan", "label": "Museum of Science\u003cbr\u003eand Technology Milan", "physics": true, "shape": "dot", "size": 15, "title": "", "x": 0, "y": 0}, {"color": "#888888", "font": {"color": "white"}, "id": "PEOPLE", "label": "PEOPLE", "physics": true, "shape": "dot", "size": 30, "title": "Explore this dimension of Andrea\u0027s life.", "x": 0, "y": -300}, {"color": "#ba68c8", "font": {"color": "white"}, "id": "Frida \ud83d\udc36", "label": "Frida \ud83d\udc36", "physics": true, "shape": "dot", "size": 15, "title": "\nA loyal companion.\n", "x": 0, "y": 0}, {"color": "#ba68c8", "font": {"color": "white"}, "id": "Blanca \ud83d\udc15\n(Giulietto\u0027s dog)", "label": "Blanca \ud83d\udc15\u003cbr\u003e(Giulietto\u0027s dog)", "physics": true, "shape": "dot", "size": 15, "title": "\nA connection through\nanimals and memes\n", "x": 0, "y": 0}, {"color": "#ba68c8", "font": {"color": "white"}, "id": "Cassie \u0026 Devery", "label": "Cassie \u0026 Devery", "physics": true, "shape": "dot", "size": 15, "title": "\nGruppo morto.\n", "x": 0, "y": 0}, {"color": "#ba68c8", "font": {"color": "white"}, "id": "Luca Pagani", "label": "Luca Pagani", "physics": true, "shape": "dot", "size": 15, "title": "\nVibecodando.\n", "x": 0, "y": 0}, {"color": "#ba68c8", "font": {"color": "white"}, "id": "The two Francys\nand Saffo", "label": "The two Francys\u003cbr\u003eand Saffo", "physics": true, "shape": "dot", "size": 15, "title": "", "x": 0, "y": 0}, {"color": "#ba68c8", "font": {"color": "white"}, "id": "Dinosaurs", "label": "Dinosaurs", "physics": true, "shape": "dot", "size": 15, "title": "\nCuriosity about\nancient worlds.\n", "x": 0, "y": 0}, {"color": "#ff4f8b", "font": {"color": "white"}, "id": "MATTEO \u2764\ufe0f", "label": "MATTEO \u2764\ufe0f", "physics": true, "shape": "dot", "size": 40, "title": "\nBridge connection.\n\nPeople \u2194 Places\n\nThe connection created\nat the Museum of Science\nand Technology Milan.\n", "x": 220, "y": -80}, {"color": "#00ffff", "font": {"color": "white"}, "id": "\u221e FUTURE CONNECTIONS", "label": "\u221e FUTURE CONNECTIONS", "physics": true, "shape": "dot", "size": 30, "title": "\nThe graph is never complete.\n\nNew nodes will appear.\nNew connections will form.\n", "x": 0, "y": 350}]);
+                  edges = new vis.DataSet([{"color": "#667788", "from": "ANDREA\nVERSION 30.0\n16.08.1996 \u2192 \u221e", "to": "KNOWLEDGE\n\u0026 CREATION", "width": 1}, {"color": "#667788", "from": "ANDREA\nVERSION 30.0\n16.08.1996 \u2192 \u221e", "to": "ROOTS", "width": 1}, {"color": "#667788", "from": "ANDREA\nVERSION 30.0\n16.08.1996 \u2192 \u221e", "to": "CURIOSITY\n\u0026 PLAY", "width": 1}, {"color": "#667788", "from": "ANDREA\nVERSION 30.0\n16.08.1996 \u2192 \u221e", "to": "PLACES\n\u0026 MEMORIES", "width": 1}, {"color": "#667788", "from": "ANDREA\nVERSION 30.0\n16.08.1996 \u2192 \u221e", "to": "PEOPLE", "width": 1}, {"color": "#667788", "from": "ANDREA\nVERSION 30.0\n16.08.1996 \u2192 \u221e", "to": "\u221e FUTURE CONNECTIONS", "width": 1}, {"color": "#667788", "from": "KNOWLEDGE\n\u0026 CREATION", "to": "Data Science", "width": 1}, {"color": "#667788", "from": "KNOWLEDGE\n\u0026 CREATION", "to": "Artificial Intelligence", "width": 1}, {"color": "#667788", "from": "KNOWLEDGE\n\u0026 CREATION", "to": "Politecnico di Milano", "width": 1}, {"color": "#667788", "from": "KNOWLEDGE\n\u0026 CREATION", "to": "Startup Legisratio", "width": 1}, {"color": "#667788", "from": "ROOTS", "to": "Branzi Val Brembana", "width": 1}, {"color": "#667788", "from": "ROOTS", "to": "Palio dei Paesi", "width": 1}, {"color": "#667788", "from": "ROOTS", "to": "Palo della Cuccagna", "width": 1}, {"color": "#667788", "from": "ROOTS", "to": "Bees \u0026 Honey", "width": 1}, {"color": "#667788", "from": "ROOTS", "to": "Old Skoda Fabia", "width": 1}, {"color": "#667788", "from": "ROOTS", "to": "Garden Tomatoes", "width": 1}, {"color": "#667788", "from": "CURIOSITY\n\u0026 PLAY", "to": "Anna Pepe", "width": 1}, {"color": "#667788", "from": "CURIOSITY\n\u0026 PLAY", "to": "Pok\u00e9mon", "width": 1}, {"color": "#667788", "from": "CURIOSITY\n\u0026 PLAY", "to": "Golf Balls \u0026 Gas Pumps", "width": 1}, {"color": "#667788", "from": "CURIOSITY\n\u0026 PLAY", "to": "Personalized Stickers", "width": 1}, {"color": "#667788", "from": "PLACES\n\u0026 MEMORIES", "to": "Dallas", "width": 1}, {"color": "#667788", "from": "PLACES\n\u0026 MEMORIES", "to": "Hong Kong", "width": 1}, {"color": "#667788", "from": "PLACES\n\u0026 MEMORIES", "to": "Rome", "width": 1}, {"color": "#667788", "from": "PLACES\n\u0026 MEMORIES", "to": "My Liguria", "width": 1}, {"color": "#667788", "from": "PLACES\n\u0026 MEMORIES", "to": "Lake Iseo", "width": 1}, {"color": "#667788", "from": "PLACES\n\u0026 MEMORIES", "to": "Lake Carona", "width": 1}, {"color": "#667788", "from": "PLACES\n\u0026 MEMORIES", "to": "Torre Branca\nParco Sempione", "width": 1}, {"color": "#667788", "from": "PLACES\n\u0026 MEMORIES", "to": "Museum of Science\nand Technology Milan", "width": 1}, {"color": "#ff4f8b", "from": "Museum of Science\nand Technology Milan", "to": "MATTEO \u2764\ufe0f", "width": 4}, {"color": "#667788", "from": "PEOPLE", "to": "Frida \ud83d\udc36", "width": 1}, {"color": "#667788", "from": "PEOPLE", "to": "Blanca \ud83d\udc15\n(Giulietto\u0027s dog)", "width": 1}, {"color": "#667788", "from": "PEOPLE", "to": "Cassie \u0026 Devery", "width": 1}, {"color": "#667788", "from": "PEOPLE", "to": "Luca Pagani", "width": 1}, {"color": "#667788", "from": "PEOPLE", "to": "The two Francys\nand Saffo", "width": 1}, {"color": "#667788", "from": "PEOPLE", "to": "Dinosaurs", "width": 1}, {"color": "#ff4f8b", "from": "Cassie \u0026 Devery", "to": "MATTEO \u2764\ufe0f", "width": 4}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"enabled": true, "stabilization": {"iterations": 200}, "barnesHut": {"gravitationalConstant": -4000, "centralGravity": 0.2, "springLength": 150, "springConstant": 0.05}}, "interaction": {"hover": true, "navigationButtons": true, "keyboard": true}, "nodes": {"shape": "dot", "font": {"size": 18, "face": "Arial"}}, "edges": {"smooth": {"type": "dynamic"}}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
